@@ -1,6 +1,8 @@
 ﻿using SnoopInSpace.Api.Auth;
 using SnoopInSpace.Application.Users;
 using SnoopInSpace.Domain.Users.Exceptions;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace SnoopInSpace.Api.Endpoints;
 
@@ -72,5 +74,27 @@ public static class AuthEndpoints
                     return Results.Unauthorized();
                 }
             });
+
+        app.MapGet(
+            "/me",
+            (ClaimsPrincipal user) =>
+            {
+                string? userId =
+                    user.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+                string? email =
+                    user.FindFirstValue(ClaimTypes.Email)
+                    ?? user.FindFirstValue(JwtRegisteredClaimNames.Email);
+
+                return Results.Ok(
+                    new
+                    {
+                        UserId = userId,
+                        Email = email
+                    });
+            })
+            .RequireAuthorization();
+
     }
 }

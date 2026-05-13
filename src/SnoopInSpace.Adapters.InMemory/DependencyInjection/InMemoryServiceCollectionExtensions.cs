@@ -27,7 +27,6 @@ public static class InMemoryServiceCollectionExtensions
         services.AddSingleton<IUserRepository, InMemoryUserRepository>();
         services.AddScoped<IPasswordHasher, FakePasswordHasher>();
         services.AddScoped<IPasswordVerifier, FakePasswordVerifier>();
-        services.AddScoped<IJwtTokenGenerator, FakeJwtTokenGenerator>();
 
         return services;
     }
