@@ -46,7 +46,16 @@ public static class JwtAuthenticationServiceCollectionExtensions
                 };
             });
 
-        services.AddAuthorization();
+        services.AddAuthorization(
+            options =>
+            {
+                options.AddPolicy(
+                    "AdminOnly",
+                    policy =>
+                    {
+                        policy.RequireRole("Admin");
+                    });
+            });
 
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 

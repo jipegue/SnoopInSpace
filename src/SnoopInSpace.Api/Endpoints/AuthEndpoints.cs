@@ -96,5 +96,14 @@ public static class AuthEndpoints
             })
             .RequireAuthorization();
 
+        app.MapGet(
+            "/admin",
+            () => Results.Ok(
+                new
+                {
+                    Message = "Admin access granted."
+                }))
+            .RequireAuthorization("AdminOnly");
+
     }
 }

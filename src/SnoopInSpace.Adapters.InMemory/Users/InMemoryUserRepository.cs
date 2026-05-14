@@ -10,6 +10,18 @@ public sealed class InMemoryUserRepository : IUserRepository
 {
     private readonly List<User> _users = [];
 
+    public InMemoryUserRepository()
+    {
+        _users.Add(
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "admin@snoop.local",
+                PasswordHash = "FAKE_HASH::Admin123!",
+                Role = "Admin"
+            });
+    }
+
     /// <inheritdoc />
     public Task<User?> GetByEmailAsync(
         string email,
