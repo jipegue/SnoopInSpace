@@ -1,4 +1,5 @@
 ﻿using SnoopInSpace.Api.Auth;
+using SnoopInSpace.Application.Security;
 using SnoopInSpace.Application.Users;
 using SnoopInSpace.Domain.Users.Exceptions;
 using System.IdentityModel.Tokens.Jwt;
@@ -105,5 +106,26 @@ public static class AuthEndpoints
                 }))
             .RequireAuthorization("AdminOnly");
 
+        app.MapPost(
+            "/auth/refresh",
+            async (
+                RefreshTokenRequest request,
+                RefreshTokenUseCase useCase,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    RefreshTokenResponse response =
+                        await useCase.ExecuteAsync(
+                            request,
+                            cancellationToken);
+
+                    return Results.Ok(response);
+                }
+                catch (InvalidCredentialsException)
+                {
+                    return Results.Unauthorized();
+                }
+            });
     }
 }
