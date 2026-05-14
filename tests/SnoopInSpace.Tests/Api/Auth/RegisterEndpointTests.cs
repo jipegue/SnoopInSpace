@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 
 using Microsoft.AspNetCore.Mvc.Testing;
+using SnoopInSpace.Tests.Api.Auth.Payloads;
 
 namespace SnoopInSpace.Tests.Api.Auth;
 
@@ -73,15 +74,5 @@ public sealed class RegisterEndpointTests
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-    }
-
-    /// <summary>
-    /// HTTP request payload.
-    /// </summary>
-    private sealed class RegisterRequest
-    {
-        public string Email { get; set; } = string.Empty;
-
-        public string Password { get; set; } = string.Empty;
     }
 }
