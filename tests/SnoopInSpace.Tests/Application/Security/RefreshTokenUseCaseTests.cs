@@ -39,10 +39,10 @@ public sealed class RefreshTokenUseCaseTests
     }
 
     /// <summary>
-    /// Ensures a new access token is returned when refresh token is valid.
+    /// Ensures new tokens are returned and the previous refresh token is revoked.
     /// </summary>
     [Fact]
-    public async Task RefreshToken_ShouldReturnNewAccessToken_WhenRefreshTokenIsValid()
+    public async Task RefreshToken_ShouldReturnNewTokens_WhenRefreshTokenIsValid()
     {
         // Arrange
         User user = new()
@@ -102,5 +102,24 @@ public sealed class RefreshTokenUseCaseTests
 
         // Assert
         response.AccessToken.Should().Be("NEW_ACCESS_TOKEN");
+        response.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        response.RefreshToken.Should().NotBe(rawRefreshToken);
+
+        await _refreshTokenRepository
+            .Received(1)
+            .RevokeAsync(
+                refreshToken.Id,
+                Arg.Any<DateTime>(),
+                Arg.Any<CancellationToken>());
+
+        await _refreshTokenRepository
+            .Received(1)
+            .SaveAsync(
+                Arg.Is<RefreshToken>(token =>
+                    token.UserId == user.Id
+                    && token.TokenHash != hashedRefreshToken
+                    && token.RevokedAt == null
+                    && token.ExpiresAt > DateTime.UtcNow),
+                Arg.Any<CancellationToken>());
     }
 }

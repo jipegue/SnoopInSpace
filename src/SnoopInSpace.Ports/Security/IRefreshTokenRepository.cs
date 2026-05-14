@@ -32,4 +32,21 @@ public interface IRefreshTokenRepository
     Task<RefreshToken?> GetByHashAsync(
         string tokenHash,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Revokes a refresh token.
+    /// </summary>
+    /// <param name="refreshTokenId">
+    /// Refresh token identifier.
+    /// </param>
+    /// <param name="revokedAt">
+    /// Revocation date.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// Cancellation token.
+    /// </param>
+    Task RevokeAsync(
+        Guid refreshTokenId,
+        DateTime revokedAt,
+        CancellationToken cancellationToken);
 }

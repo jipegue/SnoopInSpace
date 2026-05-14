@@ -104,4 +104,62 @@ public sealed class RefreshTokenEndpointTests
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    /// <summary>
+    /// Ensures old refresh token cannot be reused after rotation.
+    /// </summary>
+    [Fact]
+    public async Task RefreshToken_ShouldReturn401_WhenRefreshTokenHasAlreadyBeenRotated()
+    {
+        // Arrange
+        RegisterRequest registerRequest = new()
+        {
+            Email = "refresh-rotation-user@snoop.local",
+            Password = "RefreshPassword123!"
+        };
+
+        await _httpClient.PostAsJsonAsync(
+            "/auth/register",
+            registerRequest);
+
+        LoginRequest loginRequest = new()
+        {
+            Email = registerRequest.Email,
+            Password = registerRequest.Password
+        };
+
+        HttpResponseMessage loginHttpResponse =
+            await _httpClient.PostAsJsonAsync(
+                "/auth/login",
+                loginRequest);
+
+        LoginResponse? loginResponse =
+            await loginHttpResponse.Content
+                .ReadFromJsonAsync<LoginResponse>();
+
+        loginResponse.Should().NotBeNull();
+
+        RefreshTokenRequest firstRefreshRequest = new()
+        {
+            RefreshToken = loginResponse!.RefreshToken
+        };
+
+        HttpResponseMessage firstRefreshResponse =
+            await _httpClient.PostAsJsonAsync(
+                "/auth/refresh",
+                firstRefreshRequest);
+
+        firstRefreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Act
+        HttpResponseMessage secondRefreshResponse =
+            await _httpClient.PostAsJsonAsync(
+                "/auth/refresh",
+                firstRefreshRequest);
+
+        // Assert
+        secondRefreshResponse.StatusCode
+            .Should()
+            .Be(HttpStatusCode.Unauthorized);
+    }
 }

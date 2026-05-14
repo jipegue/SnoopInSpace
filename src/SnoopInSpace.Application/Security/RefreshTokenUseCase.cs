@@ -70,12 +70,37 @@ public sealed class RefreshTokenUseCase
             throw new InvalidCredentialsException();
         }
 
+        string newRawRefreshToken =
+           Guid.NewGuid().ToString("N");
+
+        string newRefreshTokenHash =
+            _refreshTokenHasher.Hash(newRawRefreshToken);
+
+        RefreshToken newRefreshToken = new()
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = newRefreshTokenHash,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+
+        await _refreshTokenRepository.RevokeAsync(
+            refreshToken.Id,
+            DateTime.UtcNow,
+            cancellationToken);
+
+        await _refreshTokenRepository.SaveAsync(
+            newRefreshToken,
+            cancellationToken);
+
         string accessToken =
             _jwtTokenGenerator.Generate(user);
 
         return new RefreshTokenResponse
         {
-            AccessToken = accessToken
+            AccessToken = accessToken,
+            RefreshToken = newRawRefreshToken
         };
     }
 }
