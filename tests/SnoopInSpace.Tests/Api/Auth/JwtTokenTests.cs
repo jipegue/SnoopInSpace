@@ -1,11 +1,9 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Json;
-
-using FluentAssertions;
-
+﻿using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-
 using SnoopInSpace.Tests.Api.Auth.Payloads;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Json;
+using System.Security.Claims;
 
 namespace SnoopInSpace.Tests.Api.Auth;
 
@@ -79,6 +77,10 @@ public sealed class JwtTokenTests
         jwt.Claims.Should().Contain(
             claim =>
                 claim.Type == JwtRegisteredClaimNames.Sub);
+
+        jwt.Claims.Should().Contain(
+           claim =>
+               claim.Type == ClaimTypes.Role
+               && claim.Value == "User");
     }
 }
-
