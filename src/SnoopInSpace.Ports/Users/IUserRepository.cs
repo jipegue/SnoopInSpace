@@ -35,4 +35,20 @@ public interface IUserRepository
     Task CreateAsync(
         User user,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Retrieves a user by identifier.
+    /// </summary>
+    /// <param name="id">
+    /// User identifier.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// Cancellation token.
+    /// </param>
+    /// <returns>
+    /// Matching user or null.
+    /// </returns>
+    Task<User?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken);
 }

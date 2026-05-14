@@ -42,4 +42,15 @@ public sealed class InMemoryUserRepository : IUserRepository
 
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task<User?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        User? user = _users
+            .SingleOrDefault(user => user.Id == id);
+
+        return Task.FromResult(user);
+    }
 }

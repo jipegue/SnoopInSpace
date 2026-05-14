@@ -26,6 +26,7 @@ public sealed class LoginUseCaseTests
         IPasswordVerifier passwordVerifier = Substitute.For<IPasswordVerifier>();
         IJwtTokenGenerator jwtTokenGenerator = Substitute.For<IJwtTokenGenerator>();
 
+
         User user = new()
         {
             Id = Guid.NewGuid(),

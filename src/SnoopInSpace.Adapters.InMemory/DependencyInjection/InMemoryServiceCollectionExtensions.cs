@@ -25,8 +25,12 @@ public static class InMemoryServiceCollectionExtensions
         this IServiceCollection services)
     {
         services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+
         services.AddScoped<IPasswordHasher, FakePasswordHasher>();
         services.AddScoped<IPasswordVerifier, FakePasswordVerifier>();
+
+        services.AddScoped<IRefreshTokenHasher, FakeRefreshTokenHasher>();
+        services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
 
         return services;
     }
