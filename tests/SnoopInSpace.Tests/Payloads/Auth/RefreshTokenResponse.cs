@@ -1,4 +1,4 @@
-﻿namespace SnoopInSpace.Tests.Api.Auth.Payloads;
+﻿namespace SnoopInSpace.Tests.Payloads.Auth;
 
 /// <summary>
 /// HTTP refresh token response payload used by integration tests.

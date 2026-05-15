@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using SnoopInSpace.Tests.Api.Auth.Payloads;
+using SnoopInSpace.Tests.Payloads.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Security.Claims;

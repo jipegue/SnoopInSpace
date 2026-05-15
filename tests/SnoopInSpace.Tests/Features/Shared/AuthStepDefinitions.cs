@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Reqnroll;
-using SnoopInSpace.Tests.Api.Auth.Payloads;
+using SnoopInSpace.Tests.Payloads.Auth;
 using System.Net.Http.Json;
 
 namespace SnoopInSpace.Tests.Features.Shared;
