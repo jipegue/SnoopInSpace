@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Reqnroll;
 using System.Net;
 
-namespace SnoopInSpace.Tests.Features.StepDefinitions;
+namespace SnoopInSpace.Tests.Features.StepDefinitions.Api;
 
 /// <summary>
 /// Shared API step definitions for BDD scenarios.

@@ -4,7 +4,7 @@ using Reqnroll;
 using SnoopInSpace.Tests.Payloads.Auth;
 using System.Net.Http.Json;
 
-namespace SnoopInSpace.Tests.Features.StepDefinitions;
+namespace SnoopInSpace.Tests.Features.StepDefinitions.Auth;
 
 /// <summary>
 /// Register step definitions for BDD scenarios.
