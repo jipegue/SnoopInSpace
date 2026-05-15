@@ -38,7 +38,7 @@ public static class AuthEndpoints
                             },
                             cancellationToken);
 
-                    return Results.Ok(response);
+                    return Results.Created("/me", response);
                 }
                 catch (UserAlreadyExistsException exception)
                 {

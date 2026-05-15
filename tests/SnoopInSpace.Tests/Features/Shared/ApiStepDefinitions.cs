@@ -12,14 +12,15 @@ namespace SnoopInSpace.Tests.Features.Shared;
 public class ApiStepDefinitions
 {
     private readonly HttpClient _httpClient;
-    private HttpResponseMessage? _response;
+    private readonly ScenarioContext _scenarioContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ApiStepDefinitions"/> class.
     /// </summary>
-    public ApiStepDefinitions(WebApplicationFactory<Program> factory)
+    public ApiStepDefinitions(WebApplicationFactory<Program> factory, ScenarioContext scenarioContext)
     {
         _httpClient = factory.CreateClient();
+        _scenarioContext = scenarioContext;
     }
 
     /// <summary>
@@ -28,7 +29,8 @@ public class ApiStepDefinitions
     [When("I call GET {string}")]
     public async Task WhenICallGetAsync(string route)
     {
-        _response = await _httpClient.GetAsync(route);
+        HttpResponseMessage response = await _httpClient.GetAsync(route);
+        _scenarioContext["LastResponse"] = response;
     }
 
     /// <summary>
@@ -37,9 +39,9 @@ public class ApiStepDefinitions
     [Then("the response status code should be {int}")]
     public void ThenTheResponseStatusCodeShouldBe(int expectedStatusCode)
     {
-        _response.Should().NotBeNull();
+        HttpResponseMessage response = _scenarioContext.Get<HttpResponseMessage>("LastResponse");
 
-        _response!.StatusCode
+        response.StatusCode
             .Should()
             .Be((HttpStatusCode)expectedStatusCode);
     }
