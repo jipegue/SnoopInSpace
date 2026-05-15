@@ -1,9 +1,14 @@
 ﻿using SnoopInSpace.Api.Auth;
 using SnoopInSpace.Application.Security;
 using SnoopInSpace.Application.Users;
+using SnoopInSpace.Domain.Idempotency;
 using SnoopInSpace.Domain.Users.Exceptions;
+using SnoopInSpace.Ports.Idempotency;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace SnoopInSpace.Api.Endpoints;
 
@@ -25,8 +30,44 @@ public static class AuthEndpoints
             async (
                 RegisterUserApiRequest request,
                 RegisterUserUseCase useCase,
+                IIdempotencyStore idempotencyStore,
+                HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
+                string? idempotencyKey = httpContext.Request.Headers["Idempotency-Key"];
+
+                string requestHash =
+                    ComputeRegisterRequestHash(
+                        request.Email,
+                        request.Password);
+
+                if (!string.IsNullOrWhiteSpace(idempotencyKey))
+                {
+                    IdempotencyEntry? existingEntry =
+                        await idempotencyStore.GetAsync(
+                            idempotencyKey,
+                            cancellationToken);
+
+                    if (existingEntry is not null)
+                    {
+                        if (existingEntry.RequestHash != requestHash)
+                        {
+                            return Results.Conflict(
+                                new
+                                {
+                                    error = "Idempotency key was already used with a different request."
+                                });
+                        }
+
+                        httpContext.Response.Headers.Location = existingEntry.Location ?? "/me";
+
+                        return Results.Content(
+                            existingEntry.ResponseBodyJson,
+                            existingEntry.ContentType ?? "application/json",
+                            statusCode: existingEntry.StatusCode);
+                    }
+                }
+
                 try
                 {
                     RegisterUserResponse response =
@@ -37,6 +78,25 @@ public static class AuthEndpoints
                                 Password = request.Password
                             },
                             cancellationToken);
+
+                    if (!string.IsNullOrWhiteSpace(idempotencyKey))
+                    {
+                        string responseBodyJson =
+                            JsonSerializer.Serialize(response);
+
+                        await idempotencyStore.SaveAsync(
+                            new IdempotencyEntry
+                            {
+                                Key = idempotencyKey,
+                                RequestHash = requestHash,
+                                StatusCode = StatusCodes.Status201Created,
+                                Location = "/me",
+                                ResponseBodyJson = responseBodyJson,
+                                ContentType = "application/json",
+                                CreatedAtUtc = DateTime.UtcNow
+                            },
+                            cancellationToken);
+                    }
 
                     return Results.Created("/me", response);
                 }
@@ -127,5 +187,30 @@ public static class AuthEndpoints
                     return Results.Unauthorized();
                 }
             });
+    }
+
+    /// <summary>
+    /// Computes a stable hash for a register request.
+    /// </summary>
+    /// <param name="email">
+    /// User email.
+    /// </param>
+    /// <param name="password">
+    /// User password.
+    /// </param>
+    /// <returns>
+    /// Stable request hash.
+    /// </returns>
+    private static string ComputeRegisterRequestHash(
+        string email,
+        string password)
+    {
+        string rawValue = $"{email}:{password}";
+
+        byte[] bytes = Encoding.UTF8.GetBytes(rawValue);
+
+        byte[] hash = SHA256.HashData(bytes);
+
+        return Convert.ToHexString(hash);
     }
 }

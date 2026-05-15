@@ -36,10 +36,9 @@ public class AuthStepDefinitions
             Password = "Password123!"
         };
 
-        HttpResponseMessage response =
-            await _httpClient.PostAsJsonAsync(
-                "/auth/register",
-                request, CancellationToken.None);
+        _scenarioContext["CurrentRegisterRequest"] = request;
+
+        HttpResponseMessage response = await SendRegisterRequestAsync(request);
 
         _scenarioContext["LastResponse"] = response;
     }
@@ -96,6 +95,65 @@ public class AuthStepDefinitions
 
         _scenarioContext["CurrentRegisterRequest"] = request;
     }
+
+    /// <summary>
+    /// Stores an idempotency key for the current scenario.
+    /// </summary>
+    [Given("an idempotency key {string}")]
+    public void GivenAnIdempotencyKey(string idempotencyKey)
+    {
+        _scenarioContext["IdempotencyKey"] = idempotencyKey;
+    }
+
+    /// <summary>
+    /// Registers again with the same idempotency key and the same request body.
+    /// </summary>
+    [When("I register again with the same idempotency key")]
+    public async Task WhenIRegisterAgainWithTheSameIdempotencyKey()
+    {
+        RegisterRequest request = _scenarioContext.Get<RegisterRequest>("CurrentRegisterRequest");
+
+        HttpResponseMessage response = await SendRegisterRequestAsync(request);
+
+        _scenarioContext["LastResponse"] = response;
+    }
+
+    /// <summary>
+    /// Registers again with a different payload and the same idempotency key.
+    /// </summary>
+    [When("I register again with a different payload and the same idempotency key")]
+    public async Task WhenIRegisterAgainWithADifferentPayloadAndTheSameIdempotencyKey()
+    {
+        RegisterRequest request = new()
+        {
+            Email = $"different-{Guid.NewGuid():N}@snoop.local",
+            Password = "DifferentPassword123!"
+        };
+
+        HttpResponseMessage response =
+            await SendRegisterRequestAsync(request);
+
+        _scenarioContext["LastResponse"] = response;
+    }
+
+    /// <summary>
+    /// Asserts that the replayed register response matches the original response.
+    /// </summary>
+    [Then("the replayed register response should match the original response")]
+    public async Task ThenTheReplayedRegisterResponseShouldMatchTheOriginalResponse()
+    {
+        HttpResponseMessage response =
+        _scenarioContext.Get<HttpResponseMessage>("LastResponse");
+
+        string replayedResponseBody =
+            await response.Content.ReadAsStringAsync();
+
+        RegisterRequest originalRequest =
+            _scenarioContext.Get<RegisterRequest>("CurrentRegisterRequest");
+
+        replayedResponseBody.Should().Contain(originalRequest.Email);
+    }
+
 
     /// <summary>
     /// Logs in with the current registered user's credentials.
@@ -356,5 +414,23 @@ public class AuthStepDefinitions
             CancellationToken.None);
 
         _scenarioContext["LastResponse"] = response;
+    }
+
+    /// <summary>
+    /// Sends a register request and applies the current idempotency key when available.
+    /// </summary>
+    private async Task<HttpResponseMessage> SendRegisterRequestAsync(RegisterRequest request)
+    {
+        using HttpRequestMessage httpRequest = new(HttpMethod.Post, "/auth/register")
+        {
+            Content = JsonContent.Create(request)
+        };
+
+        if (_scenarioContext.TryGetValue("IdempotencyKey", out string? idempotencyKey))
+        {
+            httpRequest.Headers.Add("Idempotency-Key", idempotencyKey);
+        }
+
+        return await _httpClient.SendAsync(httpRequest, CancellationToken.None);
     }
 }

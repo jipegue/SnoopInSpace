@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-
+using SnoopInSpace.Adapters.InMemory.Idempotency;
 using SnoopInSpace.Adapters.InMemory.Security;
 using SnoopInSpace.Adapters.InMemory.Users;
+using SnoopInSpace.Ports.Idempotency;
 using SnoopInSpace.Ports.Security;
 using SnoopInSpace.Ports.Users;
 
@@ -25,12 +26,14 @@ public static class InMemoryServiceCollectionExtensions
         this IServiceCollection services)
     {
         services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+        services.AddSingleton<IIdempotencyStore, InMemoryIdempotencyStore>();
 
         services.AddScoped<IPasswordHasher, FakePasswordHasher>();
         services.AddScoped<IPasswordVerifier, FakePasswordVerifier>();
 
         services.AddScoped<IRefreshTokenHasher, FakeRefreshTokenHasher>();
         services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
+
 
         return services;
     }
