@@ -87,6 +87,10 @@ public class RegisterStepDefinitions
 
         HttpResponseMessage response = await SendRegisterRequestAsync(request);
 
+        _scenarioContext["OriginalRegisterResponse"] = response;
+        _scenarioContext["OriginalRegisterResponseBody"] =
+            await response.Content.ReadAsStringAsync();
+
         _scenarioContext["LastResponse"] = response;
     }
 
@@ -115,6 +119,10 @@ public class RegisterStepDefinitions
 
         HttpResponseMessage response = await SendRegisterRequestAsync(request);
 
+        _scenarioContext["ReplayedRegisterResponse"] = response;
+        _scenarioContext["ReplayedRegisterResponseBody"] =
+            await response.Content.ReadAsStringAsync();
+
         _scenarioContext["LastResponse"] = response;
     }
 
@@ -140,18 +148,27 @@ public class RegisterStepDefinitions
     /// Asserts that the replayed register response matches the original response.
     /// </summary>
     [Then("the replayed register response should match the original response")]
-    public async Task ThenTheReplayedRegisterResponseShouldMatchTheOriginalResponse()
+    public void ThenTheReplayedRegisterResponseShouldMatchTheOriginalResponse()
     {
-        HttpResponseMessage response =
-            _scenarioContext.Get<HttpResponseMessage>("LastResponse");
+        HttpResponseMessage originalResponse =
+            _scenarioContext.Get<HttpResponseMessage>("OriginalRegisterResponse");
+
+        HttpResponseMessage replayedResponse =
+            _scenarioContext.Get<HttpResponseMessage>("ReplayedRegisterResponse");
+
+        string originalResponseBody =
+            _scenarioContext.Get<string>("OriginalRegisterResponseBody");
 
         string replayedResponseBody =
-            await response.Content.ReadAsStringAsync();
+            _scenarioContext.Get<string>("ReplayedRegisterResponseBody");
 
-        RegisterRequest originalRequest =
-            _scenarioContext.Get<RegisterRequest>("CurrentRegisterRequest");
+        replayedResponse.StatusCode.Should().Be(originalResponse.StatusCode);
+        replayedResponseBody.Should().Be(originalResponseBody);
 
-        replayedResponseBody.Should().Contain(originalRequest.Email);
+        replayedResponse.Headers.Location.Should().Be(originalResponse.Headers.Location);
+        replayedResponse.Content.Headers.ContentType?.MediaType
+            .Should()
+            .Be(originalResponse.Content.Headers.ContentType?.MediaType);
     }
 
     /// <summary>

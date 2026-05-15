@@ -109,8 +109,12 @@ public sealed class RegisterIdempotencyHandler
             return;
         }
 
-        string responseBodyJson =
-            JsonSerializer.Serialize(response);
+        string responseBodyJson = JsonSerializer.Serialize(
+            response,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
 
         await _idempotencyStore.SaveAsync(
             new IdempotencyEntry
