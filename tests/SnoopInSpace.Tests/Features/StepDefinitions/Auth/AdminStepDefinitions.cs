@@ -1,8 +1,7 @@
-﻿using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 using Reqnroll;
+using SnoopInSpace.Tests.Features.StepDefinitions.Auth.Helpers;
 using SnoopInSpace.Tests.Payloads.Auth;
-using System.Net.Http.Json;
 
 namespace SnoopInSpace.Tests.Features.StepDefinitions.Auth;
 
@@ -13,6 +12,7 @@ namespace SnoopInSpace.Tests.Features.StepDefinitions.Auth;
 public class AdminStepDefinitions
 {
     private readonly HttpClient _httpClient;
+    private readonly AuthScenarioClient _authScenarioClient;
     private readonly ScenarioContext _scenarioContext;
 
     /// <summary>
@@ -23,6 +23,7 @@ public class AdminStepDefinitions
         ScenarioContext scenarioContext)
     {
         _httpClient = factory.CreateClient();
+        _authScenarioClient = new AuthScenarioClient(_httpClient);
         _scenarioContext = scenarioContext;
     }
 
@@ -55,13 +56,8 @@ public class AdminStepDefinitions
             Password = request.Password,
         };
 
-        HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
-            "/auth/login",
-            loginRequest, CancellationToken.None);
-
-        LoginResponse? loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-
-        loginResponse.Should().NotBeNull();
+        (HttpResponseMessage response, LoginResponse loginResponse) =
+            await _authScenarioClient.LoginAsync(loginRequest);
 
         _scenarioContext["LastLoginResponse"] = loginResponse;
         _scenarioContext["LastResponse"] = response;

@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Reqnroll;
+using SnoopInSpace.Tests.Features.StepDefinitions.Auth.Helpers;
 using SnoopInSpace.Tests.Payloads.Auth;
 using System.Net.Http.Json;
 
@@ -14,6 +15,7 @@ public class LoginStepDefinitions
 {
     private readonly HttpClient _httpClient;
     private readonly ScenarioContext _scenarioContext;
+    private readonly AuthScenarioClient _authScenarioClient;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoginStepDefinitions"/> class.
@@ -21,6 +23,7 @@ public class LoginStepDefinitions
     public LoginStepDefinitions(WebApplicationFactory<Program> factory, ScenarioContext scenarioContext)
     {
         _httpClient = factory.CreateClient();
+        _authScenarioClient = new AuthScenarioClient(_httpClient);
         _scenarioContext = scenarioContext;
     }
 
@@ -38,17 +41,11 @@ public class LoginStepDefinitions
             Password = request.Password,
         };
 
-        HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
-            "/auth/login",
-            loginRequest, CancellationToken.None);
+        (HttpResponseMessage response, LoginResponse loginResponse) =
+           await _authScenarioClient.LoginAsync(loginRequest);
 
         _scenarioContext["LastResponse"] = response;
-
-        LoginResponse? loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-
-        loginResponse.Should().NotBeNull();
-
-        _scenarioContext["LastLoginResponse"] = loginResponse!;
+        _scenarioContext["LastLoginResponse"] = loginResponse;
     }
 
     /// <summary>
@@ -65,13 +62,13 @@ public class LoginStepDefinitions
             Password = "wrongPassword",
         };
 
-        HttpResponseMessage loginResponse = await _httpClient.PostAsJsonAsync(
+        HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
             "/auth/login",
             loginRequest, CancellationToken.None);
 
-        loginResponse.Should().NotBeNull();
+        response.Should().NotBeNull();
 
-        _scenarioContext["LastResponse"] = loginResponse;
+        _scenarioContext["LastResponse"] = response;
     }
 
     /// <summary>
