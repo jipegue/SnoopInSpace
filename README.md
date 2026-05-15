@@ -43,11 +43,15 @@ V1 — Authentication & API foundations
 
 Implemented so far:
 
-- authentication foundations
-- fake JWT generation for early development
-- login/register flow
+- register/login endpoints
+- JWT authentication
+- refresh token rotation
+- role-based authorization
+- `/me` authenticated endpoint
+- idempotent register endpoint
 - in-memory adapters for early development
-- initial integration test infrastructure
+- BDD integration tests with Reqnroll
+- modular Ports & Adapters architecture
 
 ---
 
