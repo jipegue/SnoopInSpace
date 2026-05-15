@@ -1,6 +1,10 @@
 ﻿using SnoopInSpace.Api.Auth;
+using SnoopInSpace.Api.Idempotency;
+using SnoopInSpace.Application.Security;
 using SnoopInSpace.Application.Users;
 using SnoopInSpace.Domain.Users.Exceptions;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace SnoopInSpace.Api.Endpoints;
 
@@ -22,20 +26,44 @@ public static class AuthEndpoints
             async (
                 RegisterUserApiRequest request,
                 RegisterUserUseCase useCase,
+                RegisterIdempotencyHandler idempotencyHandler,
+                HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
+                string? idempotencyKey = httpContext.Request.Headers["Idempotency-Key"];
+
+                string requestHash = idempotencyHandler.ComputeRequestHash(
+                    request.Email,
+                    request.Password);
+
+                IResult? replayResult = await idempotencyHandler.TryReplayAsync(
+                    httpContext,
+                    idempotencyKey,
+                    requestHash,
+                    cancellationToken);
+
+                if (replayResult is not null)
+                {
+                    return replayResult;
+                }
+
                 try
                 {
-                    RegisterUserResponse response =
-                        await useCase.ExecuteAsync(
-                            new RegisterUserRequest
-                            {
-                                Email = request.Email,
-                                Password = request.Password
-                            },
-                            cancellationToken);
+                    RegisterUserResponse response = await useCase.ExecuteAsync(
+                        new RegisterUserRequest
+                        {
+                            Email = request.Email,
+                            Password = request.Password
+                        },
+                        cancellationToken);
 
-                    return Results.Ok(response);
+                    await idempotencyHandler.SaveAsync(
+                        idempotencyKey,
+                        requestHash,
+                        response,
+                        cancellationToken);
+
+                    return Results.Created("/me", response);
                 }
                 catch (UserAlreadyExistsException exception)
                 {
@@ -66,6 +94,58 @@ public static class AuthEndpoints
 
                     return Results.Ok(response);
 
+                }
+                catch (InvalidCredentialsException)
+                {
+                    return Results.Unauthorized();
+                }
+            });
+
+        app.MapGet(
+            "/me",
+            (ClaimsPrincipal user) =>
+            {
+                string? userId =
+                    user.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+                string? email =
+                    user.FindFirstValue(ClaimTypes.Email)
+                    ?? user.FindFirstValue(JwtRegisteredClaimNames.Email);
+
+                return Results.Ok(
+                    new
+                    {
+                        UserId = userId,
+                        Email = email
+                    });
+            })
+            .RequireAuthorization();
+
+        app.MapGet(
+            "/admin",
+            () => Results.Ok(
+                new
+                {
+                    Message = "Admin access granted."
+                }))
+            .RequireAuthorization("AdminOnly");
+
+        app.MapPost(
+            "/auth/refresh",
+            async (
+                RefreshTokenRequest request,
+                RefreshTokenUseCase useCase,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    RefreshTokenResponse response =
+                        await useCase.ExecuteAsync(
+                            request,
+                            cancellationToken);
+
+                    return Results.Ok(response);
                 }
                 catch (InvalidCredentialsException)
                 {

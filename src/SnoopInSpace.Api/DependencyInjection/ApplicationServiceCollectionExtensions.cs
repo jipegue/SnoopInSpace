@@ -1,4 +1,6 @@
-﻿using SnoopInSpace.Application.Users;
+﻿using SnoopInSpace.Api.Idempotency;
+using SnoopInSpace.Application.Security;
+using SnoopInSpace.Application.Users;
 
 namespace SnoopInSpace.Api.DependencyInjection;
 
@@ -19,9 +21,12 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(
         this IServiceCollection services)
     {
+        services.AddScoped<RegisterIdempotencyHandler>();
         services.AddScoped<RegisterUserUseCase>();
         services.AddScoped<LoginUseCase>();
+        services.AddScoped<RefreshTokenUseCase>();
 
         return services;
     }
+
 }

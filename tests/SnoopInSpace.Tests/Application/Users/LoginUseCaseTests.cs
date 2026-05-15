@@ -3,6 +3,7 @@
 using NSubstitute;
 
 using SnoopInSpace.Application.Users;
+using SnoopInSpace.Domain.Security;
 using SnoopInSpace.Domain.Users;
 using SnoopInSpace.Domain.Users.Exceptions;
 using SnoopInSpace.Ports.Security;
@@ -26,16 +27,19 @@ public sealed class LoginUseCaseTests
         IPasswordVerifier passwordVerifier = Substitute.For<IPasswordVerifier>();
         IJwtTokenGenerator jwtTokenGenerator = Substitute.For<IJwtTokenGenerator>();
 
+        IRefreshTokenHasher refreshTokenHasher = Substitute.For<IRefreshTokenHasher>();
+        IRefreshTokenRepository refreshTokenRepository = Substitute.For<IRefreshTokenRepository>();
+
         User user = new()
         {
             Id = Guid.NewGuid(),
-            Email = "pascal@snoop.local",
+            Email = "login-user@snoop.local",
             PasswordHash = "HASHED_PASSWORD",
             CreatedAtUtc = DateTime.UtcNow
         };
 
         userRepository
-            .GetByEmailAsync("pascal@snoop.local", Arg.Any<CancellationToken>())
+            .GetByEmailAsync("login-user@snoop.local", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<User?>(user));
 
         passwordVerifier
@@ -46,14 +50,19 @@ public sealed class LoginUseCaseTests
             .Generate(user)
             .Returns("ACCESS_TOKEN");
 
+        refreshTokenHasher.Hash(Arg.Any<string>())
+            .Returns("HASHED_REFRESH_TOKEN");
+
         LoginUseCase useCase = new(
             userRepository,
             passwordVerifier,
-            jwtTokenGenerator);
+            jwtTokenGenerator,
+            refreshTokenRepository,
+            refreshTokenHasher);
 
         LoginRequest request = new()
         {
-            Email = "pascal@snoop.local",
+            Email = "login-user@snoop.local",
             Password = "Password123!"
         };
 
@@ -64,10 +73,11 @@ public sealed class LoginUseCaseTests
 
         // Assert
         response.AccessToken.Should().Be("ACCESS_TOKEN");
+        response.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
         await userRepository
             .Received(1)
-            .GetByEmailAsync("pascal@snoop.local", Arg.Any<CancellationToken>());
+            .GetByEmailAsync("login-user@snoop.local", Arg.Any<CancellationToken>());
 
         passwordVerifier
             .Received(1)
@@ -76,6 +86,17 @@ public sealed class LoginUseCaseTests
         jwtTokenGenerator
             .Received(1)
             .Generate(user);
+
+        await refreshTokenRepository
+            .Received(1)
+            .SaveAsync(
+                Arg.Is<RefreshToken>(
+                    token =>
+                    token.UserId == user.Id
+                    && token.TokenHash == "HASHED_REFRESH_TOKEN"
+                    && token.RevokedAt == null
+                    && token.ExpiresAt > DateTime.UtcNow),
+                Arg.Any<CancellationToken>());
     }
 
     /// <summary>
@@ -89,18 +110,24 @@ public sealed class LoginUseCaseTests
         IPasswordVerifier passwordVerifier = Substitute.For<IPasswordVerifier>();
         IJwtTokenGenerator jwtTokenGenerator = Substitute.For<IJwtTokenGenerator>();
 
+        IRefreshTokenHasher refreshTokenHasher = Substitute.For<IRefreshTokenHasher>();
+        IRefreshTokenRepository refreshTokenRepository = Substitute.For<IRefreshTokenRepository>();
+
+
         userRepository
-            .GetByEmailAsync("missing@snoop.local", Arg.Any<CancellationToken>())
+            .GetByEmailAsync("missing-user@snoop.local", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<User?>(null));
 
         LoginUseCase useCase = new(
             userRepository,
             passwordVerifier,
-            jwtTokenGenerator);
+            jwtTokenGenerator,
+            refreshTokenRepository,
+            refreshTokenHasher);
 
         LoginRequest request = new()
         {
-            Email = "missing@snoop.local",
+            Email = "missing-user@snoop.local",
             Password = "Password123!"
         };
 
@@ -120,5 +147,15 @@ public sealed class LoginUseCaseTests
         jwtTokenGenerator
             .DidNotReceive()
             .Generate(Arg.Any<User>());
+
+        await refreshTokenRepository
+            .DidNotReceive()
+            .SaveAsync(
+                Arg.Any<RefreshToken>(),
+                Arg.Any<CancellationToken>());
+
+        refreshTokenHasher
+            .DidNotReceive()
+            .Hash(Arg.Any<string>());
     }
 }

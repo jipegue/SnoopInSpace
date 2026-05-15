@@ -1,12 +1,12 @@
-﻿namespace SnoopInSpace.Application.Users;
+﻿namespace SnoopInSpace.Tests.Payloads.Auth;
 
 /// <summary>
-/// Response returned after successful authentication.
+/// HTTP login response payload used by integration tests.
 /// </summary>
 public sealed class LoginResponse
 {
     /// <summary>
-    /// Gets or sets the JWT access token.
+    /// Gets or sets JWT access token.
     /// </summary>
     public string AccessToken { get; set; } = string.Empty;
 

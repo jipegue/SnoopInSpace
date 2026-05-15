@@ -21,6 +21,11 @@
         public string PasswordHash { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets user role.
+        /// </summary>
+        public string Role { get; set; } = "User";
+
+        /// <summary>
         /// Gets or sets the creation date.
         /// </summary>
         public DateTime CreatedAtUtc { get; set; }

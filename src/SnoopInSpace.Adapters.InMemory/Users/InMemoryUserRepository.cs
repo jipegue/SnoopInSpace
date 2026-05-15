@@ -10,6 +10,18 @@ public sealed class InMemoryUserRepository : IUserRepository
 {
     private readonly List<User> _users = [];
 
+    public InMemoryUserRepository()
+    {
+        _users.Add(
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "admin@snoop.local",
+                PasswordHash = "FAKE_HASH::Admin123!",
+                Role = "Admin"
+            });
+    }
+
     /// <inheritdoc />
     public Task<User?> GetByEmailAsync(
         string email,
@@ -29,5 +41,16 @@ public sealed class InMemoryUserRepository : IUserRepository
         _users.Add(user);
 
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<User?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        User? user = _users
+            .SingleOrDefault(user => user.Id == id);
+
+        return Task.FromResult(user);
     }
 }
